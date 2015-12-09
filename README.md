@@ -1,7 +1,10 @@
 # QualpayAPI
 PHP-based wrapper for Qualpay Payment Gateway
 
-# Example
+# Requires
+[Guzzle](http://guzzlephp.org/), PHP HTTP Client
+
+# Examples
 ```php
 <?php
 
