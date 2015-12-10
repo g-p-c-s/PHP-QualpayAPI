@@ -1,7 +1,7 @@
 <?php
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Middleware;
+use GuzzleHttp\Middleware;  // Tap events
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Exception\RequestExeption;
@@ -20,6 +20,8 @@ class QualpayAPI
         'moto_ecomm_ind' => 7, // Ecommerce
     ];
 
+    private $timeout = 30;
+
     /**
      * List of supported currencies and their Qualpay codes.
      *
@@ -31,19 +33,19 @@ class QualpayAPI
         'EUR' => 978,
     ];
 
-    public function __construct($merchant_id, $security_key, $is_live = true, $tokenize_if_allowed = true)
+    public function __construct($merchant_id, $security_key, $is_live = true, $timeout_in_seconds = 30, $tokenize_if_allowed = true)
     {
         if ($is_live == true) {
             $this->api_host = 'https://api.qualpay.com';
         } else {
             $this->api_host = 'https://api-test.qualpay.com';
-            // $this->api_host = 'http://localhost:5255';
         }
 
         // Set the merchant_id and key
         $this->merchant_id = $merchant_id;
         $this->security_key = $security_key;
 
+        $this->timeout = $timeout_in_seconds;
         $this->tokenize_if_allowed = $tokenize_if_allowed;
 
         // Instantiate Http Client
@@ -207,27 +209,12 @@ class QualpayAPI
             }
         }
 
-        $clientHandler = $this->client->getConfig('handler');
-        $tapMiddleware = Middleware::tap(function ($request) {
-            echo 'Printing Headers: '.PHP_EOL;
-            // foreach($request->getHeaders() as $h=>$v){
-            //     echo $h . ': ' . var_dump($v) . PHP_EOL;
-            // }
-            echo 'Content-Type: '.var_dump($request->getHeader('Content-Type')).PHP_EOL;
-            echo 'Body: '.$request->getBody().PHP_EOL;
-            // {"foo":"bar"}
-        });
-
-        echo 'INPUT: '.print_r($inputData, true).PHP_EOL;
-
         try {
             $response = $this->client->post(
                 '/pg/auth',
                 [
-                    'timeout' => 30,
+                    'timeout' => $this->timeout,
                     'json' => $inputData,
-                    'debug' => true,
-                    'handler' => $tapMiddleware($clientHandler)
                 ]
             );
 
