@@ -1,7 +1,7 @@
 # QualpayAPI
-PHP-based wrapper for [Qualpay Payment Gateway](https://www.qualpay.com/)
+PHP wrapper for [Qualpay Payment Gateway](https://www.qualpay.com/)
 
-Note: This was written with reference to [Qualpay Gateway Specification v1.3](https://www.qualpay.com/download/qppg/Payment_Gateway_Specification_V1.3.pdf)
+Note: Still in development and is written with reference to [Qualpay Gateway Specification v1.3](https://www.qualpay.com/download/qppg/Payment_Gateway_Specification_V1.3.pdf)
 
 # Requires
 [Guzzle](http://guzzlephp.org/), PHP HTTP Client
