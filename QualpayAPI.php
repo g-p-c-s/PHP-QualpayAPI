@@ -1,13 +1,15 @@
 <?php
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Middleware;  // Tap events
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Exception\RequestExeption;
 
 /**
+ *	QualpayAPI
  *
+ * @todo Convert $commandResponse to a class
  */
 class QualpayAPI
 {
@@ -28,7 +30,7 @@ class QualpayAPI
      * @var Array
      */
     private $supported_currencies = [
-        'USD' => 841,
+        'USD' => 840,
         'GBP' => 826,
         'EUR' => 978,
     ];
@@ -122,7 +124,6 @@ class QualpayAPI
             $auth['tokenize'] = 'true';
         }
 
-        //print_r( array_merge($card, $trans, $auth) );
         $inputData = array();
         $inputData = $this->clubArrays($inputData, $card);
         $inputData = $this->clubArrays($inputData, $trans);
@@ -148,9 +149,43 @@ class QualpayAPI
             $auth['tokenize'] = 'true';
         }
 
-        //print_r( array_merge($card, $trans, $auth) );
         $inputData = array();
         $inputData = $this->clubArrays($inputData, $card);
+
+        // Execute
+        return $this->submitCommand($command_uri, $inputData);
+    }
+
+
+    /**
+     * Tokenize given card
+     *
+     * @param  [type] $card [description]
+     * @return [type]       [description]
+     */
+    public function tokenizeCard($card)
+    {
+        $command_uri = '/pg/tokenize';
+
+        $inputData = array();
+        $inputData = $this->clubArrays($inputData, $card);
+
+        // Execute
+        return $this->submitCommand($command_uri, $inputData);
+    }
+
+
+    /**
+     * Void a previously authorized transaction.
+     *
+     * @param  String $pg_id A valid pg_id returned by Auth
+     * @return [type]        [description]
+     */
+    public function voidTransaction($pg_id)
+    {
+        $command_uri = '/pg/void/'.$pg_id;
+
+        $inputData = array();
 
         // Execute
         return $this->submitCommand($command_uri, $inputData);
@@ -168,12 +203,8 @@ class QualpayAPI
     {
         $command_uri = '/pg/refund/'.$pg_id;
 
-        //print_r( array_merge($card, $trans, $auth) );
         $inputData = array();
-        //$inputData = $this->clubArrays($inputData, $card);
         $inputData = $this->clubArrays($inputData, $trans);
-        //$inputData = $this->clubArrays($inputData, $auth);
-
 
         // Execute
         return $this->submitCommand($command_uri, $inputData);
@@ -211,7 +242,7 @@ class QualpayAPI
 
         try {
             $response = $this->client->post(
-                '/pg/auth',
+                $command_uri,
                 [
                     'timeout' => $this->timeout,
                     'json' => $inputData,
