@@ -7,11 +7,11 @@ use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Exception\RequestExeption;
 
 /**
- *	QualpayAPI
+ *  QualpayApi
  *
  * @todo Convert $commandResponse to a class
  */
-class QualpayAPI
+class QualpayApi
 {
     private $client;
     private $api_host;
@@ -46,7 +46,6 @@ class QualpayAPI
         // Set the merchant_id and key
         $this->merchant_id = $merchant_id;
         $this->security_key = $security_key;
-
         $this->timeout = $timeout_in_seconds;
         $this->tokenize_if_allowed = $tokenize_if_allowed;
 
@@ -67,13 +66,12 @@ class QualpayAPI
      */
     public function captureFromToken($card_id, $exp_date, $trans)
     {
-        $command_uri = '/pg/capture';
+        $command_uri = '/pg/sale';
 
         $inputData = [
             'card_id' => $card_id,
             'exp_date' => $exp_date,
         ];
-
         $inputData = $this->clubArrays($inputData, $trans);
 
         // Execute
@@ -97,7 +95,6 @@ class QualpayAPI
             $auth['tokenize'] = 'true';
         }
 
-        //print_r( array_merge($card, $trans, $auth) );
         $inputData = array();
         $inputData = $this->clubArrays($inputData, $card);
         $inputData = $this->clubArrays($inputData, $trans);
@@ -151,11 +148,11 @@ class QualpayAPI
 
         $inputData = array();
         $inputData = $this->clubArrays($inputData, $card);
+        $inputData = $this->clubArrays($inputData, $auth);
 
         // Execute
         return $this->submitCommand($command_uri, $inputData);
     }
-
 
     /**
      * Tokenize given card
@@ -174,7 +171,6 @@ class QualpayAPI
         return $this->submitCommand($command_uri, $inputData);
     }
 
-
     /**
      * Void a previously authorized transaction.
      *
@@ -183,8 +179,7 @@ class QualpayAPI
      */
     public function voidTransaction($pg_id)
     {
-        $command_uri = '/pg/void/'.$pg_id;
-
+        $command_uri = '/pg/void/' . $pg_id;
         $inputData = array();
 
         // Execute
@@ -201,7 +196,7 @@ class QualpayAPI
      */
     public function refundTransaction($pg_id, $trans)
     {
-        $command_uri = '/pg/refund/'.$pg_id;
+        $command_uri = '/pg/refund/' . $pg_id;
 
         $inputData = array();
         $inputData = $this->clubArrays($inputData, $trans);
@@ -229,9 +224,10 @@ class QualpayAPI
             'body' => [],
         ];
 
-        // Auth fields
-        $inputData['merchant_id'] = $this->merchant_id;
-        $inputData['security_key'] = $this->security_key;
+        // Fix if currency code is not a Qualpay numeric code
+        if (!empty($inputData['tran_currency']) && !is_numeric($inputData['tran_currency'])) {
+            $inputData['tran_currency'] = $this->currencyCode($inputData['tran_currency']);
+        }
 
         // Attach any other common fields if defined
         if (count($this->other_common_fields) > 0) {
@@ -240,10 +236,15 @@ class QualpayAPI
             }
         }
 
+        Log::debug('Qualpay Request', $inputData);
+
+        // Auth fields
+        $inputData['merchant_id'] = $this->merchant_id;
+        $inputData['security_key'] = $this->security_key;
+
         try {
             $response = $this->client->post(
-                $command_uri,
-                [
+                $command_uri, [
                     'timeout' => $this->timeout,
                     'json' => $inputData,
                 ]
@@ -251,21 +252,24 @@ class QualpayAPI
 
             $commandResponse['errorCode'] = 0;
             $commandResponse['errorMessage'] = '';
-
             $commandResponse['statusCode'] = $response->getStatusCode();
             $commandResponse['reasonPhrase'] = $response->getReasonPhrase();
-            $commandResponse['body'] = json_decode($response->getBody()->getContents());
+            $jsonResp = json_decode($response->getBody()->getContents());
+            $commandResponse['body'] = $jsonResp;
+
+            // In case of verifyAndTokenize, 085 is approved
+            if ($jsonResp->rcode=="000") {
+                $commandResponse['status'] = 1;
+            }
         } catch (ServerException $e) {
             // 500 errors
             $commandResponse['errorCode'] = $e->getCode();
             $commandResponse['errorMessage'] = $e->getMessage();
             $commandResponse['line'] = $e->getLine();
             $commandResponse['file'] = $e->getFile();
-
             // echo $e->getRequest();
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
-
                 $commandResponse['statusCode'] = $response->getStatusCode();
                 $commandResponse['reasonPhrase'] = $response->getReasonPhrase();
                 $commandResponse['body'] = json_decode($response->getBody()->getContents());
@@ -276,11 +280,9 @@ class QualpayAPI
             $commandResponse['errorMessage'] = $e->getMessage();
             $commandResponse['line'] = $e->getLine();
             $commandResponse['file'] = $e->getFile();
-
             // echo $e->getRequest();
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
-
                 $commandResponse['statusCode'] = $response->getStatusCode();
                 $commandResponse['reasonPhrase'] = $response->getReasonPhrase();
                 $commandResponse['body'] = json_decode($response->getBody()->getContents());
@@ -291,11 +293,9 @@ class QualpayAPI
             $commandResponse['errorMessage'] = $e->getMessage();
             $commandResponse['line'] = $e->getLine();
             $commandResponse['file'] = $e->getFile();
-
             // echo $e->getRequest();
             if ($e->hasResponse()) {
                 $response = $e->getResponse();
-
                 $commandResponse['statusCode'] = $response->getStatusCode();
                 $commandResponse['reasonPhrase'] = $response->getReasonPhrase();
                 $commandResponse['body'] = json_decode($response->getBody()->getContents());
@@ -341,7 +341,6 @@ class QualpayAPI
         foreach ($arr2 as $k => $v) {
             $arr1[$k] = $v;
         }
-
         return $arr1;
     }
 }
